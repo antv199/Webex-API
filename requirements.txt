@@ -1,4 +1,4 @@
 keyboard
 pyautogui
 opencv-python
-selenium
+pyperclip
