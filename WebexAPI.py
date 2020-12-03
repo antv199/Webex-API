@@ -2,7 +2,19 @@ import pyautogui, time, pyperclip, random, warnings
 
 SkinMode="Dark" #Dark and Light
 
-def Join(url):
+def GetSkin():
+    JoinButton=pyautogui.locateCenterOnScreen('resources/DarkMode/JoinMeeting.png', grayscale=True, confidence=0.7)
+    if JoinButton:
+        SkinMode="Dark"
+    else:
+        JoinButton=pyautogui.locateCenterOnScreen('resources/LightMode/JoinMeeting.png', grayscale=True, confidence=0.7)
+        if JoinButton:
+            SkinMode="Light"
+
+
+def Join(url: str):
+    GetSkin()
+    time.sleep(3)
     JoinButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/JoinMeeting.png', grayscale=True, confidence=0.7)
     if JoinButton:
         click(JoinButton,1)
@@ -16,7 +28,7 @@ def Leave():
         if LeaveButton:
             click(LeaveButton,1)
 
-def click(OBJ,nclicks):
+def click(OBJ,nclicks: int):
     pyautogui.moveTo(OBJ)
     pyautogui.click(OBJ, clicks=nclicks)
 
@@ -37,16 +49,22 @@ def GetWaitStatus():
         status=0
     return status
 
-def Chat():
+def Chat(msg):
+    def GetChatStatus():
+        st=False
+        EnterMessage=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/EnterMessage.png', grayscale=True, confidence=1)
+        if EnterMessage:
+            st=True
+        return st
+
     def Type(obj,msg):
         click(obj,1)
         pyperclip.copy(msg)
         pyautogui.hotkey("ctrl", "v")
-        #pyautogui.press("enter")
+        pyautogui.press("enter")
     
-    EnterMessage=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/EnterMessage.png', grayscale=True, confidence=1)
     ChatCollapsed=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/ChatCollapsed.png', grayscale=True, confidence=0.9)
-    if not EnterMessage:
+    if not GetChatStatus():
         print("Opening Chat")
         if not ChatCollapsed:
             ChatButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/ChatButton.png', grayscale=True, confidence=0.9)
@@ -54,7 +72,9 @@ def Chat():
                 click(ChatButton,1)
                 time.sleep(1)
         else:
-            click(ChatCollapsed,2)
+            EnterMessage=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/EnterMessage.png', grayscale=True, confidence=1)
+            if EnterMessage:
+                click(ChatCollapsed,2)
 
         EnterMessage=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/EnterMessage.png', grayscale=True, confidence=0.9)
         Type(EnterMessage, respones[int(random.uniform(0,2))])
@@ -65,60 +85,81 @@ def Chat():
         Type(EnterMessage, respones[random.uniform(0,2)])
 
 class Peripherals():
-    def Microphone(enabled: bool) -> int:
-        res=0 #0 Failed, 1 Success, 2 Mic is locked by host, 3 Action was already applied before
+    def Microphone(enable: bool) -> int:
+        res=0 #0 Failed, 1 Success, 2 Mic is locked by host
 
-        if not enabled: #If user wants to mute
+        def Get():
+            res=False #False off, True on
             MicButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/MuteButton.png', grayscale=False, confidence=0.9)
-            if not MicButton: #If it isn't 
+            if MicButton:
+                res=True
+            else:
+                res=False
+            return res
+
+        if not enable: #If user wants to mute
+            if not Get(): #If it's currently used
                 MicButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/UnmuteButton.png', grayscale=False, confidence=0.9)
                 if MicButton:
                     print("Already muted.")
-                    res=3
                 else:
                     print("User is muted and locked by host.")
                     res=2
-            else:
-                click(MicButton,1)
-                print("Done")
-                res=1
+            else: #If it's currently being used
+                MicButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/MuteButton.png', grayscale=False, confidence=0.9)
+                if MicButton:
+                    click(MicButton,1)
+                    print("Done")
+                    res=1
 
         else: #If we want to enable it
-            MicButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/UnmuteButton.png', grayscale=False, confidence=0.8)
-            if not MicButton:
+            if Get(): #If it's enabled
+                MicButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/UnmuteButton.png', grayscale=False, confidence=0.8)
+                if MicButton:
+                    print("Opening Mic...")
+                    click(MicButton,1)
+                    res=1
+            else:
                 MicButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/MuteButton.png', grayscale=False, confidence=0.9)
                 if MicButton:
                     print("Mic already enabled.")
-                    res=3
                 else:
                     print("User is muted and locked by host.")
                     res=2
             else:
-                print("Opening Mic...")
-                click(MicButton,1)
-                res=1
+                
         return res
 
     def Camera(enabled: bool) -> int:
+
+        def Get():
+            res=False #False Closed, True Open
+            VideoButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/StopVideoButton.png', grayscale=True, confidence=0.9)
+            if VideoButton:# If we detect that the canera is currectly open
+                res=True
+            else:
+                res=False
+            return res
+
         res=0
         if not enabled:
-            VideoButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/StopVideoButton.png', grayscale=True, confidence=0.9)
-            if VideoButton:
-                print("Closing Video...")
-                click(VideoButton,1)
-                res=1
+            if Get(): #If camera is open
+                VideoButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/StopVideoButton.png', grayscale=True, confidence=0.9)
+                if VideoButton:    
+                    print("Closing Video...")
+                    click(VideoButton,1)
+                    res=1
             else:
                 print("Camera already closed.")
-                res=3
-        else:
-            VideoButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/StartVideoButton.png', grayscale=True, confidence=0.9)
-            if VideoButton:
-                print("Enabling Camera...")
-                click(VideoButton, 1)
-                res=1
+        else: # user wants to close camera
+            if not Get():
+                VideoButton=pyautogui.locateCenterOnScreen('resources/'+SkinMode+'Mode/StartVideoButton.png', grayscale=True, confidence=0.9)
+                if VideoButton:
+                    print("Enabling Camera...")
+                    click(VideoButton, 1)
+                    res=1
             else:
                 print("Camera already enabled.")
-                res=3
         return res
 
 def Hand(Raise: bool):
